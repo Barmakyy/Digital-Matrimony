@@ -2,8 +2,6 @@ const MarriageApplication = require('../models/MarriageApplication');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
-const OpenAI = require('openai');
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Submit a new marriage application
 exports.submitApplication = async (req, res) => {
@@ -104,19 +102,8 @@ exports.generateCertificate = async (req, res) => {
     if (application.status !== 'approved') {
       return res.status(400).json({ message: 'Application must be approved to generate certificate' });
     }
-    // 1. Generate AI message
-    let aiMessage = '';
-    try {
-      const aiPrompt = `Write a short, formal congratulatory message for a marriage certificate for ${application.spouse1.name} and ${application.spouse2.name}.`;
-      const aiResponse = await openai.completions.create({
-        model: 'text-davinci-003',
-        prompt: aiPrompt,
-        max_tokens: 60,
-      });
-      aiMessage = aiResponse.choices[0].text.trim();
-    } catch (aiErr) {
-      aiMessage = 'Congratulations on your marriage! Wishing you a lifetime of love and happiness.';
-    }
+    // Use a static congratulatory message
+    const aiMessage = 'Congratulations on your marriage! Wishing you a lifetime of love and happiness.';
     // Create PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([600, 400]);
@@ -130,7 +117,7 @@ exports.generateCertificate = async (req, res) => {
       page.drawText(`- ${w.name}`, { x: 70, y: 190 - i * 20, size: 12, font });
     });
     page.drawText(`Certificate ID: ${application._id}`, { x: 50, y: 100, size: 12, font });
-    // Add AI-generated message
+    // Add static congratulatory message
     page.drawText(aiMessage, { x: 50, y: 60, size: 13, font, color: rgb(0.2, 0.2, 0.2) });
     // Save PDF
     const pdfBytes = await pdfDoc.save();
